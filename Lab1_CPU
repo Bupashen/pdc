@@ -1,0 +1,42 @@
+%%cu 
+#include <stdlib.h> 
+#include <stdio.h> 
+ 
+void CosKernel(float*, int); 
+void CosKernel(float *a, float *b, int n) { 
+for (int i =0; i < n; i++){
+b[i] = cosl(a[i]);
+}
+} 
+ 
+void Printer(float *a, int n){ 
+ for (int i = 0; i < n; i++){ 
+ printf("%f\n", a[i]); 
+ } 
+} 
+ 
+void Assigner(float *a, int n){ 
+ for (int i = 0; i < n; i++){ 
+ a[i] = (float)i; 
+ } 
+} 
+ 
+int main(){ 
+ 
+int n = 524288; 
+int size = n * sizeof(float); 
+ 
+float *a = NULL, *b = NULL; 
+ 
+a = (float *) malloc(size); 
+b = (float *) malloc(size); 
+ 
+Assigner(a, n);
+ 
+CosKernel(a, b, n);
+ 
+Printer(b, n);
+ 
+free(a); 
+free(b); 
+}
