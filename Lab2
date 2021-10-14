@@ -1,0 +1,149 @@
+%%cu
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctime>
+
+#define N 20
+
+void ChangeArraySize(long int *n){
+    long int k = *n;
+    if (k % 2 == 0){
+        *n /= 2;
+    }
+    else{
+        *n = (*n + 1) / 2;
+    }
+}
+
+__global__ void ExtractHigh(long int *aDev, long int *aHighDev, long int *n){
+    long int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    long int k = *n;
+    if (k % 2 == 0){
+        if (idx < k / 2){
+            aHighDev[idx] = aDev[k - idx - 1];
+        }
+    }
+    else {
+        if (idx < (k + 1) / 2){
+            if (idx == (k - 1) / 2){
+                aHighDev[idx] = 1;
+            }
+            else{
+                aHighDev[idx] = aDev[k - idx - 1];
+            }
+        }
+    }
+    
+}
+
+__global__ void ExtractLow(long int *aDev, long int *aLowDev, long int *n){
+    long int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    long int k = *n;
+    if (k % 2 == 0){
+        if (idx < k / 2){
+            aLowDev[idx] = aDev[idx];
+        }
+    }
+    else {
+        if (idx < (k + 1) / 2){
+            aLowDev[idx] = aDev[idx];
+        }
+    }
+    
+}
+
+__global__ void Mul(long int *a, long int *b, long int *c, long int *n) {
+    long int idx = threadIdx.x + blockIdx.x * blockDim.x;
+    long int k = *n;
+    if (k % 2 == 0){
+        if (idx < k / 2){
+        c[idx] = a[idx] * b[idx];
+    }
+    }
+    else{
+        if (idx < (k + 1)/ 2){
+        c[idx] = a[idx] * b[idx];
+    }
+    }
+    
+}
+
+long int Fract(long int n){
+    long int res;
+    res = 1;
+    if (n == 0){
+        return 1;
+    }
+    for (long int i = 1; i <= n; i++){
+        res *= i;
+    }
+    return res;
+}
+
+int main(){
+    long int *fract_array = (long int *) malloc(N * sizeof(long int));
+    long int *array_size = (long int *) malloc(sizeof(long int));
+    *array_size = N;
+
+    int start = 0, finish = 0, GPU_time = 0, CPU_time = 0;
+
+    for (long int i = 0; i < *array_size; i++){
+        fract_array[i] = i + 1;
+    }
+
+    start = clock();
+    long int *aDev = NULL, *aHighDev = NULL, *aLowDev = NULL;
+    long int *n = NULL;
+
+    cudaMalloc((void **) &aDev, *array_size * sizeof(long int));
+    cudaMalloc((void **) &n, sizeof(long int));
+    cudaMalloc((void **) &aHighDev, *array_size / 2 * sizeof(long int));
+    cudaMalloc((void **) &aLowDev, *array_size / 2 * sizeof(long int));
+
+    
+    dim3 threads = dim3(N, 1);
+    dim3 blocks = dim3(N / threads.x, 1);
+
+    cudaMemcpy(aDev, fract_array, *array_size * sizeof(long int), cudaMemcpyHostToDevice);
+    cudaMemcpy(n, array_size, sizeof(long int), cudaMemcpyHostToDevice);  
+
+    while (*array_size > 1){    
+           
+        ExtractHigh<<<blocks, threads>>> (aDev, aHighDev, n);
+        cudaDeviceSynchronize();
+        ExtractLow<<<blocks, threads>>> (aDev, aLowDev, n);
+        cudaDeviceSynchronize();
+        Mul<<<blocks, threads>>> (aHighDev, aLowDev, aDev, n);
+        cudaDeviceSynchronize();
+        ChangeArraySize(array_size);
+        
+        
+        cudaMemcpy(n, array_size, sizeof(long int), cudaMemcpyHostToDevice);
+        cudaDeviceSynchronize();
+    } 
+
+    cudaMemcpy(fract_array, aDev, *array_size * sizeof(long int), cudaMemcpyDeviceToHost);
+
+    finish = clock();
+    GPU_time = (finish - start)/100;
+    printf("fractal of %i: %ld\n", N, fract_array[0]);
+    printf("GPU time: %i\n", GPU_time);
+
+    start = clock();
+	 long int g = N;
+    printf("fractal of %i: %li\n", N, Fract(g));
+    finish = clock();
+    CPU_time = (finish - start) * 1000; 
+    printf("CPU time: %i\n", CPU_time);
+    
+
+
+  
+
+    cudaFree(aDev);
+    cudaFree(aHighDev);
+    cudaFree(aLowDev);
+    cudaFree(n);
+    free(fract_array);
+    free(array_size);
+}
