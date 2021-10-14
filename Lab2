@@ -4,6 +4,7 @@
 #include <ctime>
 
 #define N 20
+#define t 15
 
 void ChangeArraySize(long int *n){
     long int k = *n;
@@ -69,8 +70,7 @@ __global__ void Mul(long int *a, long int *b, long int *c, long int *n) {
 }
 
 long int Fract(long int n){
-    long int res;
-    res = 1;
+    long int res = 1;
     if (n == 0){
         return 1;
     }
@@ -81,17 +81,19 @@ long int Fract(long int n){
 }
 
 int main(){
+    long int p = 0, q =0, l = 0;
+    int start = 0, finish = 0, GPU_time = 0, CPU_time = 0;
+    start = clock();
+
     long int *fract_array = (long int *) malloc(N * sizeof(long int));
     long int *array_size = (long int *) malloc(sizeof(long int));
     *array_size = N;
-
-    int start = 0, finish = 0, GPU_time = 0, CPU_time = 0;
 
     for (long int i = 0; i < *array_size; i++){
         fract_array[i] = i + 1;
     }
 
-    start = clock();
+    
     long int *aDev = NULL, *aHighDev = NULL, *aLowDev = NULL;
     long int *n = NULL;
 
@@ -123,22 +125,8 @@ int main(){
     } 
 
     cudaMemcpy(fract_array, aDev, *array_size * sizeof(long int), cudaMemcpyDeviceToHost);
-
-    finish = clock();
-    GPU_time = (finish - start)/100;
-    printf("fractal of %i: %ld\n", N, fract_array[0]);
-    printf("GPU time: %i\n", GPU_time);
-
-    start = clock();
-	 long int g = N;
-    printf("fractal of %i: %li\n", N, Fract(g));
-    finish = clock();
-    CPU_time = (finish - start) * 1000; 
-    printf("CPU time: %i\n", CPU_time);
     
-
-
-  
+    p = fract_array[0];
 
     cudaFree(aDev);
     cudaFree(aHighDev);
@@ -146,4 +134,116 @@ int main(){
     cudaFree(n);
     free(fract_array);
     free(array_size);
+
+    fract_array = (long int *) malloc(N * sizeof(long int));
+    array_size = (long int *) malloc(sizeof(long int));
+    *array_size = t;
+
+    for (long int i = 0; i < *array_size; i++){
+        fract_array[i] = i + 1;
+    }
+
+
+    cudaMalloc((void **) &aDev, *array_size * sizeof(long int));
+    cudaMalloc((void **) &n, sizeof(long int));
+    cudaMalloc((void **) &aHighDev, *array_size / 2 * sizeof(long int));
+    cudaMalloc((void **) &aLowDev, *array_size / 2 * sizeof(long int));
+
+    
+    threads = dim3(t, 1);
+    blocks = dim3(t / threads.x, 1);
+
+    cudaMemcpy(aDev, fract_array, *array_size * sizeof(long int), cudaMemcpyHostToDevice);
+    cudaMemcpy(n, array_size, sizeof(long int), cudaMemcpyHostToDevice);  
+
+    while (*array_size > 1){    
+           
+        ExtractHigh<<<blocks, threads>>> (aDev, aHighDev, n);
+        cudaDeviceSynchronize();
+        ExtractLow<<<blocks, threads>>> (aDev, aLowDev, n);
+        cudaDeviceSynchronize();
+        Mul<<<blocks, threads>>> (aHighDev, aLowDev, aDev, n);
+        cudaDeviceSynchronize();
+        ChangeArraySize(array_size);
+        
+        
+        cudaMemcpy(n, array_size, sizeof(long int), cudaMemcpyHostToDevice);
+        cudaDeviceSynchronize();
+    } 
+
+    cudaMemcpy(fract_array, aDev, *array_size * sizeof(long int), cudaMemcpyDeviceToHost);
+    
+    q = fract_array[0];
+    cudaFree(aDev);
+    cudaFree(aHighDev);
+    cudaFree(aLowDev);
+    cudaFree(n);
+    free(fract_array);
+    free(array_size);
+
+
+    fract_array = (long int *) malloc(N * sizeof(long int));
+    array_size = (long int *) malloc(sizeof(long int));
+    *array_size = N - t;
+
+    for (long int i = 0; i < *array_size; i++){
+        fract_array[i] = i + 1;
+    }
+
+
+    cudaMalloc((void **) &aDev, *array_size * sizeof(long int));
+    cudaMalloc((void **) &n, sizeof(long int));
+    cudaMalloc((void **) &aHighDev, *array_size / 2 * sizeof(long int));
+    cudaMalloc((void **) &aLowDev, *array_size / 2 * sizeof(long int));
+
+    
+    threads = dim3(N - t, 1);
+    blocks = dim3(N - t / threads.x, 1);
+
+    cudaMemcpy(aDev, fract_array, *array_size * sizeof(long int), cudaMemcpyHostToDevice);
+    cudaMemcpy(n, array_size, sizeof(long int), cudaMemcpyHostToDevice);  
+
+    while (*array_size > 1){    
+           
+        ExtractHigh<<<blocks, threads>>> (aDev, aHighDev, n);
+        cudaDeviceSynchronize();
+        ExtractLow<<<blocks, threads>>> (aDev, aLowDev, n);
+        cudaDeviceSynchronize();
+        Mul<<<blocks, threads>>> (aHighDev, aLowDev, aDev, n);
+        cudaDeviceSynchronize();
+        ChangeArraySize(array_size);
+        
+        
+        cudaMemcpy(n, array_size, sizeof(long int), cudaMemcpyHostToDevice);
+        cudaDeviceSynchronize();
+    } 
+
+    cudaMemcpy(fract_array, aDev, *array_size * sizeof(long int), cudaMemcpyDeviceToHost);
+    
+    l = fract_array[0];
+    cudaFree(aDev);
+    cudaFree(aHighDev);
+    cudaFree(aLowDev);
+    cudaFree(n);
+    free(fract_array);
+    free(array_size);
+
+    long int C = p / (q * l);
+
+    finish = clock();
+    GPU_time = finish - start;
+    printf("number of combinations from %ld to %ld: %ld\n", N, t, C);
+    printf("GPU time: %i\n", GPU_time);
+
+    start = clock();
+    long int g1 = N, g2 = t, g3 = N-t;
+    g1 = Fract(g1);
+    g2 = Fract(g2);
+    g3 = Fract(g3);
+    C = g1/ (g2 *g3);
+    printf("number of combinations from %ld to %ld: %ld\n", N, t, C);
+    finish = clock();
+    CPU_time = finish - start; 
+    printf("CPU time: %i\n", CPU_time);
+
 }
