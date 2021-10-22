@@ -83,19 +83,22 @@ long int Fract(long int n){
 int main(){
     long int p = 0, q =0, l = 0;
     int start = 0, finish = 0, GPU_time = 0, CPU_time = 0;
+    long int *fract_array, *array_size;
+    long int *aDev = NULL, *aHighDev = NULL, *aLowDev = NULL;
+    long int *n = NULL;
+    dim3 threads, blocks;
     start = clock();
-
-    long int *fract_array = (long int *) malloc(N * sizeof(long int));
-    long int *array_size = (long int *) malloc(sizeof(long int));
+    if (N == 0){
+    p = 1;
+    }
+    else{
+    fract_array = (long int *) malloc(N * sizeof(long int));
+    array_size = (long int *) malloc(sizeof(long int));
     *array_size = N;
 
     for (long int i = 0; i < *array_size; i++){
         fract_array[i] = i + 1;
     }
-
-    
-    long int *aDev = NULL, *aHighDev = NULL, *aLowDev = NULL;
-    long int *n = NULL;
 
     cudaMalloc((void **) &aDev, *array_size * sizeof(long int));
     cudaMalloc((void **) &n, sizeof(long int));
@@ -134,7 +137,12 @@ int main(){
     cudaFree(n);
     free(fract_array);
     free(array_size);
+    }
 
+    if(t == 0){
+    q = 1;
+    }
+    else{
     fract_array = (long int *) malloc(N * sizeof(long int));
     array_size = (long int *) malloc(sizeof(long int));
     *array_size = t;
@@ -180,8 +188,12 @@ int main(){
     cudaFree(n);
     free(fract_array);
     free(array_size);
+    }
 
-
+    if((N-t) == 0){
+    l = 1;
+    }
+    else{
     fract_array = (long int *) malloc(N * sizeof(long int));
     array_size = (long int *) malloc(sizeof(long int));
     *array_size = N - t;
@@ -198,7 +210,7 @@ int main(){
 
     
     threads = dim3(N - t, 1);
-    blocks = dim3(N - t / threads.x, 1);
+    blocks = dim3((N - t) / threads.x, 1);
 
     cudaMemcpy(aDev, fract_array, *array_size * sizeof(long int), cudaMemcpyHostToDevice);
     cudaMemcpy(n, array_size, sizeof(long int), cudaMemcpyHostToDevice);  
@@ -227,11 +239,12 @@ int main(){
     cudaFree(n);
     free(fract_array);
     free(array_size);
+    }
 
     long int C = p / (q * l);
 
     finish = clock();
-    GPU_time = finish - start;
+    GPU_time = (finish - start)/100;
     printf("number of combinations from %ld to %ld: %ld\n", N, t, C);
     printf("GPU time: %i\n", GPU_time);
 
@@ -243,7 +256,7 @@ int main(){
     C = g1/ (g2 *g3);
     printf("number of combinations from %ld to %ld: %ld\n", N, t, C);
     finish = clock();
-    CPU_time = finish - start; 
+    CPU_time = (finish - start)*1000; 
     printf("CPU time: %i\n", CPU_time);
 
 }
