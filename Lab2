@@ -3,8 +3,8 @@
 #include <stdio.h>
 #include <ctime>
 
-#define N 20
-#define t 15
+#define N 3
+#define t 0
 
 void ChangeArraySize(long int *n){
     long int k = *n;
@@ -210,7 +210,7 @@ int main(){
 
     
     threads = dim3(N - t, 1);
-    blocks = dim3((N - t) / threads.x, 1);
+    blocks = dim3(N - t / threads.x, 1);
 
     cudaMemcpy(aDev, fract_array, *array_size * sizeof(long int), cudaMemcpyHostToDevice);
     cudaMemcpy(n, array_size, sizeof(long int), cudaMemcpyHostToDevice);  
