@@ -4,20 +4,20 @@
 #include <ctime>
 #include <math.h>
 
-__global__ void LogArray(float *a, float *res, int *n){
+__global__ void LogArray(double *a, double *res, int *n){
     int idx = threadIdx.x + blockIdx.x * blockDim.x;
     if(idx < *n){
         res[idx] = logf(a[idx]);
     }
 }
 
-float LogFact(float x){
+double LogFact(double x){
     if (x == 0){
         return 0;
     }
     else if (x > 0){
-        float res = 0;
-        for (float i = 1; i <= x; i++){
+        double res = 0;
+        for (double i = 1; i <= x; i++){
             res += log(i);
         }
         return res;
@@ -27,20 +27,20 @@ float LogFact(float x){
     }
 }
 
-void Printer(float *a, int n){
+void Printer(double *a, int n){
     for (int i = 0; i < n; i++){
         printf("%i: %f\n", i, a[i]);
     }
 }
 
 int main(){
-    float N = 40, t = 20;
+    double N = 20, t = 15;
     int start = 0, finish = 0;
     int CPU_time = 0, GPU_time = 0;
 
     //CPU computation
-    float g1 = N, g2 = t, g3 = N-t;
-    float C = 0;
+    double g1 = N, g2 = t, g3 = N-t;
+    double C = 0;
     start = clock();
     g1 = LogFact(g1);
     g2 = LogFact(g2);
@@ -52,23 +52,23 @@ int main(){
     printf("time of calculations for CPU: %i\n", (finish - start)*1000);
 
     //GPU computation
-    float* f1 = NULL, *f2 = NULL, *f3 = NULL;
-    float *h1 = NULL, *h2 = NULL, *h3 = NULL;
+    double* f1 = NULL, *f2 = NULL, *f3 = NULL;
+    double *h1 = NULL, *h2 = NULL, *h3 = NULL;
     int *m1 = NULL, *m2 = NULL, *m3 = NULL;
     C = 0;
     int n1 = N, n2 = t, n3 = N-t; 
-    float log1 = 0, log2 = 0, log3 = 0;
+    double log1 = 0, log2 = 0, log3 = 0;
 
-    float *f1_GPU = NULL, *f2_GPU = NULL, *f3_GPU = NULL;
-    float *h1_GPU = NULL, *h2_GPU = NULL, *h3_GPU = NULL;
+    double *f1_GPU = NULL, *f2_GPU = NULL, *f3_GPU = NULL;
+    double *h1_GPU = NULL, *h2_GPU = NULL, *h3_GPU = NULL;
     int *m1_GPU = NULL, *m2_GPU = NULL, *m3_GPU = NULL;
 
     start = clock();
   
     if(n1 != 0){
 
-        int size1 = n1 * sizeof(float);
-        f1 = (float*)malloc(size1);
+        int size1 = n1 * sizeof(double);
+        f1 = (double*)malloc(size1);
 
         for(int i = 0; i < n1; i++){
             f1[i] = (i + 1);
@@ -77,7 +77,7 @@ int main(){
         m1 = (int*)malloc(sizeof(int));
         *m1 = n1;
 
-        h1 = (float*)malloc(size1);
+        h1 = (double*)malloc(size1);
 
         cudaMalloc((void**)&f1_GPU, size1);
         cudaMalloc((void**)&m1_GPU, sizeof(int));
@@ -103,8 +103,8 @@ int main(){
 
     if(n2 != 0){
 
-        int size2 = n2 * sizeof(float);
-        f2 = (float*)malloc(size2);
+        int size2 = n2 * sizeof(double);
+        f2 = (double*)malloc(size2);
 
         for(int i = 0; i < n2; i++){
             f2[i] = (i + 1);
@@ -113,7 +113,7 @@ int main(){
         m2 = (int*)malloc(sizeof(int));
         *m2 = n2;
 
-        h2 = (float*)malloc(size2);
+        h2 = (double*)malloc(size2);
 
         cudaMalloc((void**)&f2_GPU, size2);
         cudaMalloc((void**)&m2_GPU, sizeof(int));
@@ -140,8 +140,8 @@ int main(){
 
     if(n3 != 0){
 
-        int size3 = n3 * sizeof(float);
-        f3 = (float*)malloc(size3);
+        int size3 = n3 * sizeof(double);
+        f3 = (double*)malloc(size3);
 
         for(int i = 0; i < n3; i++){
             f3[i] = (i + 1);
@@ -150,7 +150,7 @@ int main(){
         m3 = (int*)malloc(sizeof(int));
         *m3 = n3;
 
-        h3 = (float*)malloc(size3);
+        h3 = (double*)malloc(size3);
 
         cudaMalloc((void**)&f3_GPU, size3);
         cudaMalloc((void**)&m3_GPU, sizeof(int));
@@ -183,5 +183,4 @@ int main(){
 
     printf("number of combinations from %f to %f: %li\n", N, t, (long)C);
     printf("time of calculations for GPU: %i\n", (finish - start)/100);
-}
 }
